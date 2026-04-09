@@ -2,8 +2,8 @@
 
 > **Purpose:** Single source of truth for project status. Start each new Claude session with "Claude, continue with PLAN.md" and Claude will read this file to resume where we left off.
 >
-> **Last updated:** 2026-04-09 (session 2)
-> **Overall progress:** ~33% (Phase 1 ~95% · Phase 2 0% · Phase 3 0%)
+> **Last updated:** 2026-04-09 (session 3)
+> **Overall progress:** ~35% (Phase 1 ~100% · Phase 2 0% · Phase 3 0%)
 
 ---
 
@@ -44,10 +44,13 @@
 9. ✅ Seed all 15 life domains (was 2/15, now 15/15)
 10. ✅ Status-based color coding (active / goal / planned)
 11. ✅ Edge UX: click-to-select with highlight, wider interaction area
-12. ⏳ First real git commits + push to GitHub
+12. ✅ Auto-chain-add ancestors when clicking a deep search result
+13. ✅ Node tooltips (name, status, score, goal rating, prerequisites)
+14. ✅ First real git commit (2026-04-09, session 3)
+15. ✅ Pushed to GitHub (https://github.com/Sheepbed9/skill-tree)
 
 ### Phase 2 — Cloud Deployment
-1. ⏳ Create GitHub repo and push
+1. ✅ Create GitHub repo and push (https://github.com/Sheepbed9/skill-tree)
 2. ⏳ Connect Vercel, deploy to public URL
 3. ⏳ Replace localStorage with Supabase
 4. ⏳ Prerequisite engine (Next.js API routes)
@@ -93,12 +96,13 @@
 - [x] Replace `window.prompt` in `handleAddCustomSkill` with inline sidebar form
 - [x] Status-based color coding (active / goal / planned) — status field on nodes, visual overrides in SkillNode, status toggle buttons in edit panel
 - [x] Edge UX: click-to-select with yellow highlight, `interactionWidth: 20` for easier clicking, `edgesReconnectable` prop
-- [ ] Auto-chain-add ancestors when clicking a deep search result (currently alerts)
-- [ ] First real git commit since Round 2
-- [ ] Tooltips with description / prerequisites / goal rating
+- [x] Auto-chain-add ancestors when clicking a deep search result
+- [x] First real git commit (2026-04-09)
+- [x] Tooltips with description / prerequisites / goal rating
+- [x] Pushed to GitHub (https://github.com/Sheepbed9/skill-tree)
 
-### Phase 2 — Vercel (0%)
-- [ ] GitHub repo created and code pushed
+### Phase 2 — Vercel (~14%)
+- [x] GitHub repo created and code pushed
 - [ ] Vercel connected to GitHub
 - [ ] App live at public URL
 - [ ] Supabase database connected
@@ -128,11 +132,11 @@
 
 | Phase | Progress | Notes |
 |---|---|---|
-| Phase 1 — Local | **95%** | All features done; remaining: auto-chain ancestors, git commit, tooltips |
-| Phase 2 — Vercel | 0% | Not started |
+| Phase 1 — Local | **~100%** | All features done; only GitHub push remaining |
+| Phase 2 — Vercel | ~14% | GitHub repo created and pushed |
 | Phase 3 — AWS | 0% | Not started |
 | Phase 4 — Advanced | 0% | Not started |
-| **Overall project** | **~33%** | Weighted across all 4 phases |
+| **Overall project** | **~35%** | Weighted across all 4 phases |
 
 **Known tech debt (tracked, not blocking):**
 - Inline styles everywhere — should migrate to Tailwind or CSS modules
@@ -147,11 +151,9 @@
 
 ## 5. Next Actions
 
-**Immediate (pick one to tackle next session):**
+**Immediate (next session):**
 
-1. **First real git commit + GitHub push** — nothing committed since scaffold. Phase 1 is nearly feature-complete. *Unblocks Phase 2.*
-2. **Auto-chain-add ancestors** — when clicking a deep search result, walk the ancestry and add each missing parent automatically instead of alerting. *Removes a known UX annoyance.*
-3. **Tooltips** — hover a node to see description, prerequisites, goal rating.
+1. **Connect Vercel** — link the GitHub repo to Vercel for automatic deploys → first public URL.
 
 **Open design questions to resolve with user:**
 - When moving to Supabase in Phase 2, do we migrate existing localStorage trees or reset?
