@@ -4,7 +4,7 @@
 
 **Reference:** A hand-drawn mind map with "Life" at the center, branching into categories (Exercise, Grooming, Work, Trading, etc.), each with sub-skills, proficiency ratings (e.g. 3/10), and goals.
 
-**What this app does:** Digitizes and extends that concept with interactivity, persistence, a prerequisite engine, and a skill library side panel.
+**What this app does:** Digitizes and extends that concept with interactivity, persistence (localStorage), a prerequisite engine, and a skill library side panel.
 
 ### Skill Tree Data Model — Infinite Nesting
 
@@ -95,7 +95,7 @@ This applies to both user-created nodes and library nodes dragged from the side 
 |---|---|---|
 | **Frontend** | Everything the user sees and clicks in the browser | Next.js + React Flow |
 | **Backend** | Rules and logic that run on a server — e.g. "does this user meet the prerequisites?" | Next.js API Routes |
-| **Database** | Where data lives permanently — survives closing the app or browser | JSON file (Phase 1) → Supabase → AWS RDS |
+| **Database** | Where data lives permanently — survives closing the app or browser | localStorage (Phase 1) → Supabase (Phase 2) → AWS RDS (Phase 3) |
 
 ---
 

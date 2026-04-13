@@ -1,49 +1,76 @@
 # SkillTree
 
-A personal life skill tracker and dependency engine — visualize your skills as an interactive node map, track your progress, and discover what you can unlock next.
+A personal life skill tracker — visualize your skills as an interactive node map, rate your proficiency, set goals, and track progress across every area of your life.
 
 ## What is SkillTree?
 
 SkillTree lets you:
-- Map your life skills as an interactive, drag-and-drop node tree
-- Rate your current proficiency in each skill (e.g. 3/10)
-- Set goals and milestones per skill
-- Define prerequisites between skills
-- See which skills you're eligible to learn next based on what you already know
+- Browse a library of **15 life domains** (Fitness, Finance, Career, etc.) with hundreds of nested skills
+- Build your personal skill tree on an interactive canvas — each domain radiates outward in a game-style node map
+- Rate your proficiency in each skill (0–10) with visual score bars
+- Mark skills as **active**, **goal**, or **planned** with color-coded nodes
+- Search for any skill and **auto-add it** with all missing ancestors in one click
+- Hover nodes for **tooltips** showing status, score, and goal info
+- Create **custom skills** not in the library and connect them anywhere
+- Edit node names, icons, scores, and status from an in-canvas panel
+- Click edges to select/highlight, reconnect by dragging, or delete by dropping in space
+- Everything **saves automatically** to localStorage
+
+## Current Status
+
+**Phase 1 (Local Prototype) — Complete.** The app runs locally via `npm run dev`.
+
+Next up: Phase 2 — deploy to Vercel with a real database (Supabase) and prerequisite engine.
 
 ## Project Goals
 
 | Goal | Description |
 |---|---|
-| Personal tracker | Manage your own life skill tree (based on a hand-drawn mind map reference) |
-| Prerequisite engine | "You have X and Y prerequisites, so you can unlock Z" |
-| Shareable | Others can create accounts and manage their own skill trees |
+| Personal tracker | Manage your own life skill tree (based on a hand-drawn mind map) |
+| Prerequisite engine | "You have X and Y, so you can unlock Z" (Phase 2) |
+| Shareable | Multi-user accounts with public skill tree links (Phase 3+) |
 
 ## Deployment Phases
 
-| Phase | Hosting | Purpose |
+| Phase | Hosting | Status |
 |---|---|---|
-| Phase 1 | Local only (`npm run dev`) | Build the app, learn the fundamentals |
-| Phase 2 | Vercel | Fast, zero-config deployment — learn CI/CD basics |
-| Phase 3 | AWS via Terraform | Learn cloud infrastructure as code |
+| Phase 1 | Local only (`npm run dev`) | Complete |
+| Phase 2 | Vercel + Supabase | Up next |
+| Phase 3 | AWS via Terraform | Planned |
 
-## Planned Project Structure
+## Project Structure
 
 ```
-skilltree/
-├── app/              # Next.js pages and API routes (backend logic lives here too)
-├── components/       # Reusable UI pieces (SkillNode, SkillTree, Sidebar, etc.)
-├── data/             # JSON data files for local storage (Phase 1)
-├── lib/              # Core logic (prerequisite engine, data helpers)
-└── public/           # Images and static files
+skill-tree/
+├── app/
+│   ├── page.tsx           # Main app — canvas, sidebar, edit panel, all logic
+│   ├── SkillNode.tsx      # Custom React Flow node (game-style circular nodes)
+│   ├── skillLibrary.ts    # 15 life domains with hundreds of nested skills
+│   └── layout.tsx         # Next.js root layout
+├── docs/
+│   ├── requirements.md    # User stories and feature specs
+│   ├── tech-stack.md      # Technology choices with reasoning
+│   └── learning-roadmap.md # Phase-by-phase learning plan
+├── PLAN.md                # Project status tracker (start here for context)
+└── public/                # Static files
 ```
 
-## Who is this for?
+## Getting Started
 
-Built by a non-technical business analyst learning cloud/DevOps and web fundamentals through a real project. Every technical decision in this project is documented with a "why" — see [tech-stack.md](tech-stack.md).
+```bash
+npm install
+npm run dev
+```
 
-## Where to start
+Open http://localhost:3000 — click a domain in the sidebar to start building your tree.
 
-1. Read [requirements.md](requirements.md) — what the app needs to do
-2. Read [tech-stack.md](tech-stack.md) — what tools we're using and why
-3. Read [learning-roadmap.md](learning-roadmap.md) — the step-by-step learning plan
+## Documentation
+
+- [PLAN.md](PLAN.md) — project status and progress tracker
+- [docs/requirements.md](docs/requirements.md) — what the app needs to do
+- [docs/tech-stack.md](docs/tech-stack.md) — what tools we're using and why
+- [docs/learning-roadmap.md](docs/learning-roadmap.md) — the step-by-step learning plan
+
+## About
+
+Built by a non-technical business analyst learning cloud/DevOps and web fundamentals through a real project. Every technical decision is documented with a "why" — see [docs/tech-stack.md](docs/tech-stack.md).

@@ -18,20 +18,20 @@
 - Git basics — saving your work and tracking changes
 
 ### Milestones
-- [ ] Node.js installed, Next.js project scaffolded (`npx create-next-app`)
-- [ ] Skill tree renders with sample hard-coded data
-- [ ] Nodes are draggable and repositionable (React Flow)
-- [ ] Add / edit / delete skills via UI
-- [ ] Infinite nesting — any node can have children, no depth limit
-- [ ] Side panel with skill library organized by domain
-- [ ] Drag domain from side panel → auto-populates child nodes on canvas
-- [ ] Custom skills — user can add skills not in the library
-- [ ] Data saves to a local JSON file (persists on refresh)
-- [ ] Color-coding by status (active / goal / planned)
-- [ ] Skill library seed data created (JSON file with domains and nested skills)
+- [x] Node.js installed, Next.js project scaffolded (`npx create-next-app`)
+- [x] Skill tree renders with sample hard-coded data
+- [x] Nodes are draggable and repositionable (React Flow)
+- [x] Add / edit / delete skills via UI
+- [x] Infinite nesting — any node can have children, no depth limit
+- [x] Side panel with skill library organized by domain
+- [x] Click domain from side panel → auto-populates child nodes on canvas
+- [x] Custom skills — user can add skills not in the library
+- [x] Data saves to localStorage (persists on refresh)
+- [x] Color-coding by status (active / goal / planned)
+- [x] Skill library seed data created (15 domains with hundreds of nested skills)
 
 ### Tools introduced this phase
-`Node.js` · `npm` · `Next.js` · `React` · `React Flow` · `JavaScript` · `JSON` · `Git`
+`Node.js` · `npm` · `Next.js` · `React` · `React Flow` · `TypeScript` · `localStorage` · `Git` · `GitHub CLI`
 
 ---
 

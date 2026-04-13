@@ -14,7 +14,7 @@
       ↓
 [Next.js API Routes]   ← backend logic (prerequisite engine, data access)
       ↓
-[Data Storage]         ← JSON file (now) → Supabase → AWS RDS (later)
+[Data Storage]         ← localStorage (now) → Supabase → AWS RDS (later)
 ```
 
 ---
@@ -60,7 +60,7 @@ This means one codebase, one language (JavaScript), one deployment.
 
 | Phase | Storage | Why |
 |---|---|---|
-| Phase 1 (local) | JSON file | Zero setup. A JSON file is just structured text — good enough to start learning. |
+| Phase 1 (local) | localStorage | Zero setup. Built into every browser — data persists across page refreshes without a server. |
 | Phase 2 (Vercel) | Supabase (PostgreSQL) | Free tier, connects easily to Next.js, hosted in the cloud — no server to manage. |
 | Phase 3 (AWS) | AWS RDS (PostgreSQL) | Managed database on AWS — pairs naturally with Terraform and ECS deployment. |
 
@@ -106,5 +106,5 @@ Vercel removes all infrastructure complexity so you can focus on learning the ap
 | Framework | Next.js | Never — this is the right call for Vercel + full-stack |
 | Node visualization | React Flow | If we need more advanced graph algorithms |
 | Backend | Next.js API routes | Phase 4 — add Python microservice for prerequisite engine |
-| Database | JSON → Supabase → RDS | Upgrade each phase |
+| Database | localStorage → Supabase → RDS | Upgrade each phase |
 | Deployment | Local → Vercel → AWS | Progress through phases |
