@@ -51,7 +51,7 @@
 
 ### Phase 2 — Cloud Deployment
 1. ✅ Create GitHub repo and push (https://github.com/Sheepbed9/skill-tree)
-2. ⏳ Connect Vercel, deploy to public URL
+2. ✅ Connect Vercel, deploy to public URL (https://skill-tree-ecru.vercel.app/)
 3. ⏳ Replace localStorage with Supabase
 4. ⏳ Prerequisite engine (Next.js API routes)
 5. ⏳ "You can unlock X" suggestions
@@ -101,10 +101,10 @@
 - [x] Tooltips with description / prerequisites / goal rating
 - [x] Pushed to GitHub (https://github.com/Sheepbed9/skill-tree)
 
-### Phase 2 — Vercel (~14%)
+### Phase 2 — Vercel (~43%)
 - [x] GitHub repo created and code pushed
-- [ ] Vercel connected to GitHub
-- [ ] App live at public URL
+- [x] Vercel connected to GitHub
+- [x] App live at public URL (https://skill-tree-ecru.vercel.app/)
 - [ ] Supabase database connected
 - [ ] Migration from localStorage → Supabase
 - [ ] Prerequisite engine API route
@@ -133,7 +133,7 @@
 | Phase | Progress | Notes |
 |---|---|---|
 | Phase 1 — Local | **~100%** | All features done; only GitHub push remaining |
-| Phase 2 — Vercel | ~14% | GitHub repo created and pushed |
+| Phase 2 — Vercel | ~43% | Deployed to Vercel, live at public URL |
 | Phase 3 — AWS | 0% | Not started |
 | Phase 4 — Advanced | 0% | Not started |
 | **Overall project** | **~35%** | Weighted across all 4 phases |
@@ -153,7 +153,7 @@
 
 **Immediate (next session):**
 
-1. **Connect Vercel** — link the GitHub repo to Vercel for automatic deploys → first public URL.
+1. **Supabase setup** — create a Supabase project, design the schema, migrate from localStorage to a real database.
 
 **Open design questions to resolve with user:**
 - When moving to Supabase in Phase 2, do we migrate existing localStorage trees or reset?

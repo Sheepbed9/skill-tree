@@ -231,6 +231,7 @@ export default function Home() {
   const [customIcon, setCustomIcon] = useState('');
   const [customScore, setCustomScore] = useState('');
   const [customParent, setCustomParent] = useState('');
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   const edgeReconnectSuccessful = useRef(true);
 
@@ -482,6 +483,59 @@ export default function Home() {
       ),
     );
   };
+
+  // ─── Prerequisite engine: "What should I learn next?" ────────────────
+  type Recommendation = {
+    id: string;
+    label: string;
+    icon?: string;
+    parentLabel: string;
+    parentScore: number;
+    status: string;
+  };
+
+  const recommendations = useMemo((): Recommendation[] => {
+    if (!showRecommendations) return [];
+
+    // Build parent→children map and node lookup
+    const parentOf = new Map<string, string>();
+    edges.forEach((e) => parentOf.set(e.target, e.source));
+
+    const nodeMap = new Map<string, Node>();
+    nodes.forEach((n) => nodeMap.set(n.id, n));
+
+    const recs: Recommendation[] = [];
+
+    for (const node of nodes) {
+      const d = node.data as SkillNodeData;
+      const score = d.score ?? 0;
+
+      // Skip nodes that already have meaningful progress
+      if (score >= 3) continue;
+
+      // Check if the parent exists and has score >= 3
+      const parentId = parentOf.get(node.id);
+      if (!parentId) continue; // root/domain nodes — no prerequisite
+      const parent = nodeMap.get(parentId);
+      if (!parent) continue;
+      const pd = parent.data as SkillNodeData;
+      const parentScore = pd.score ?? 0;
+      if (parentScore < 3) continue; // parent not ready
+
+      recs.push({
+        id: node.id,
+        label: d.label,
+        icon: d.icon,
+        parentLabel: pd.label,
+        parentScore,
+        status: d.status ?? 'active',
+      });
+    }
+
+    // Sort: parent score desc (strongest prerequisites first), then alphabetical
+    recs.sort((a, b) => b.parentScore - a.parentScore || a.label.localeCompare(b.label));
+    return recs;
+  }, [showRecommendations, nodes, edges]);
 
   // ─── Recursive sidebar tree ──────────────────────────────────────────
   const renderSkillTree = (
@@ -780,6 +834,12 @@ export default function Home() {
               <button onClick={handleReset} style={btnStyle('#475569')}>
                 Reset
               </button>
+              <button
+                onClick={() => setShowRecommendations((v) => !v)}
+                style={btnStyle(showRecommendations ? '#7c3aed' : '#2563eb')}
+              >
+                {showRecommendations ? '✕ Close' : '🧭 What should I learn next?'}
+              </button>
             </div>
           </Panel>
           <Panel position="bottom-right">
@@ -923,6 +983,102 @@ export default function Home() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Recommendations panel */}
+        {showRecommendations && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 60,
+              left: 16,
+              width: 340,
+              maxHeight: 'calc(100vh - 100px)',
+              overflowY: 'auto',
+              background: '#0f172a',
+              color: '#e2e8f0',
+              border: '1px solid #334155',
+              borderRadius: 8,
+              padding: 16,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              zIndex: 5,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+            >
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
+                🧭 Recommended Next Skills
+              </h3>
+              <button
+                onClick={() => setShowRecommendations(false)}
+                style={{
+                  background: 'transparent',
+                  color: '#94a3b8',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
+              Skills where you have strong enough prerequisites (parent score ≥ 3) but haven&apos;t started yet.
+            </p>
+
+            {nodes.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#64748b', padding: '12px 0' }}>
+                Add some skills to the canvas first.
+              </div>
+            ) : recommendations.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#64748b', padding: '12px 0' }}>
+                No recommendations right now. Score some skills ≥ 3 to unlock suggestions for their children.
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+                  {recommendations.length} skill{recommendations.length === 1 ? '' : 's'} ready to learn
+                </div>
+                {recommendations.map((rec) => (
+                  <button
+                    key={rec.id}
+                    onClick={() => {
+                      setSelectedNodeId(rec.id);
+                      setShowRecommendations(false);
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      marginBottom: 6,
+                      background: '#1e293b',
+                      color: '#e2e8f0',
+                      border: '1px solid #334155',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>
+                      {rec.icon && <span style={{ marginRight: 6 }}>{rec.icon}</span>}
+                      {rec.label}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                      Prerequisite: {rec.parentLabel} ({rec.parentScore}/10)
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>
