@@ -26,6 +26,7 @@ import {
   type LibraryDomain,
 } from './skillLibrary';
 import SkillNode, { type SkillNodeData } from './SkillNode';
+import { supabase } from './supabase';
 
 // ─── Layout constants ────────────────────────────────────────────────────
 const DOMAIN_GAP = 300; // horizontal gap between domain bounding boxes
@@ -142,8 +143,9 @@ function layoutAllDomains(nodes: Node[], edges: Edge[]): Node[] {
 
 const nodeTypes = { skill: SkillNode };
 
-// ─── Persistence (localStorage) ──────────────────────────────────────────
+// ─── Persistence (Supabase + localStorage fallback) ─────────────────────
 const STORAGE_KEY = 'skilltree:v1';
+const SUPABASE_ROW_ID = 'default'; // single tree for now; multi-user in Phase 3
 
 type PersistedState = {
   nodes: Node[];
@@ -152,7 +154,8 @@ type PersistedState = {
   nextId: number;
 };
 
-function loadState(): PersistedState | null {
+// localStorage helpers — kept as fallback / migration source
+function loadLocalState(): PersistedState | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -165,21 +168,39 @@ function loadState(): PersistedState | null {
   }
 }
 
-function saveState(state: PersistedState) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Quota exceeded or storage disabled — silently ignore for now
-  }
-}
-
-function clearState() {
+function clearLocalState() {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {
     // ignore
+  }
+}
+
+// Supabase persistence
+async function loadSupabaseState(): Promise<PersistedState | null> {
+  try {
+    const { data, error } = await supabase
+      .from('skill_trees')
+      .select('data')
+      .eq('id', SUPABASE_ROW_ID)
+      .single();
+    if (error || !data) return null;
+    const parsed = data.data as PersistedState;
+    if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function saveSupabaseState(state: PersistedState) {
+  try {
+    await supabase
+      .from('skill_trees')
+      .upsert({ id: SUPABASE_ROW_ID, data: state, updated_at: new Date().toISOString() });
+  } catch {
+    // Silently ignore — will retry on next state change
   }
 }
 
@@ -234,24 +255,49 @@ export default function Home() {
   const [showRecommendations, setShowRecommendations] = useState(false);
 
   const edgeReconnectSuccessful = useRef(true);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ─── Load from localStorage on mount ────────────────────────────────
+  // ─── Load from Supabase on mount (fall back to localStorage for migration)
   useEffect(() => {
-    const saved = loadState();
-    if (saved) {
-      setNodes(saved.nodes);
-      setEdges(saved.edges);
-      setPlacedMap(saved.placedMap);
-      setNextId(saved.nextId);
+    let cancelled = false;
+    async function load() {
+      // Try Supabase first
+      const cloud = await loadSupabaseState();
+      if (cancelled) return;
+      if (cloud) {
+        setNodes(cloud.nodes);
+        setEdges(cloud.edges);
+        setPlacedMap(cloud.placedMap);
+        setNextId(cloud.nextId);
+        setHydrated(true);
+        return;
+      }
+      // Fall back to localStorage (migrates existing data)
+      const local = loadLocalState();
+      if (cancelled) return;
+      if (local) {
+        setNodes(local.nodes);
+        setEdges(local.edges);
+        setPlacedMap(local.placedMap);
+        setNextId(local.nextId);
+        // Migrate to Supabase and clear localStorage
+        await saveSupabaseState(local);
+        clearLocalState();
+      }
+      setHydrated(true);
     }
-    setHydrated(true);
+    load();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Save to localStorage whenever state changes ────────────────────
+  // ─── Save to Supabase whenever state changes (debounced 1s) ─────────
   useEffect(() => {
-    if (!hydrated) return; // don't overwrite saved data with the initial empty state
-    saveState({ nodes, edges, placedMap, nextId });
+    if (!hydrated) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveSupabaseState({ nodes, edges, placedMap, nextId });
+    }, 1000);
   }, [hydrated, nodes, edges, placedMap, nextId]);
 
   const flat = useMemo(() => flattenLibrary(), []);
@@ -458,7 +504,7 @@ export default function Home() {
 
   const handleReset = () => {
     if (!window.confirm('Wipe the canvas? This clears your saved tree.')) return;
-    clearState();
+    clearLocalState();
     setNodes([]);
     setEdges([]);
     setPlacedMap({});
