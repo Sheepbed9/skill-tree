@@ -47,10 +47,10 @@
 12. ✅ Auto-chain-add ancestors when clicking a deep search result
 13. ✅ Node tooltips (name, status, score, goal rating, prerequisites)
 14. ✅ First real git commit (2026-04-09, session 3)
-15. ✅ Pushed to GitHub (https://github.com/Sheepbed9/skill-tree)
+15. ✅ Pushed to GitHub (https://github.com/sean-yap/skill-tree)
 
 ### Phase 2 — Cloud Deployment
-1. ✅ Create GitHub repo and push (https://github.com/Sheepbed9/skill-tree)
+1. ✅ Create GitHub repo and push (https://github.com/sean-yap/skill-tree)
 2. ✅ Connect Vercel, deploy to public URL (https://skill-tree-ecru.vercel.app/)
 3. ✅ Replace localStorage with Supabase (auto-migration on first load)
 4. ✅ Prerequisite engine ("What should I learn next?" button)
@@ -100,7 +100,7 @@
 - [x] Auto-chain-add ancestors when clicking a deep search result
 - [x] First real git commit (2026-04-09)
 - [x] Tooltips with description / prerequisites / goal rating
-- [x] Pushed to GitHub (https://github.com/Sheepbed9/skill-tree)
+- [x] Pushed to GitHub (https://github.com/sean-yap/skill-tree)
 
 ### Phase 2 — Vercel (100%)
 - [x] GitHub repo created and code pushed
