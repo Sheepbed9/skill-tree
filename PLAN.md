@@ -2,8 +2,8 @@
 
 > **Purpose:** Single source of truth for project status. Start each new Claude session with "Claude, continue with PLAN.md" and Claude will read this file to resume where we left off.
 >
-> **Last updated:** 2026-04-09 (session 3)
-> **Overall progress:** ~35% (Phase 1 ~100% · Phase 2 0% · Phase 3 0%)
+> **Last updated:** 2026-05-07 (session 6)
+> **Overall progress:** ~62% (Phase 1 100% · Phase 2 100% · Phase 3 ~35% · Phase 4 0%)
 
 ---
 
@@ -52,16 +52,17 @@
 ### Phase 2 — Cloud Deployment
 1. ✅ Create GitHub repo and push (https://github.com/Sheepbed9/skill-tree)
 2. ✅ Connect Vercel, deploy to public URL (https://skill-tree-ecru.vercel.app/)
-3. ⏳ Replace localStorage with Supabase
-4. ⏳ Prerequisite engine (Next.js API routes)
-5. ⏳ "You can unlock X" suggestions
+3. ✅ Replace localStorage with Supabase (auto-migration on first load)
+4. ✅ Prerequisite engine ("What should I learn next?" button)
+5. ✅ "You can unlock X" suggestions (recommendations panel)
 
 ### Phase 3 — AWS + Terraform
-1. ⏳ Dockerize the app
-2. ⏳ Push image to ECR
-3. ⏳ Terraform files: VPC, ECS, RDS, ALB
-4. ⏳ `terraform apply` provisions full stack
-5. ⏳ CloudWatch logs + alerts
+1. ✅ Dockerize the app (Dockerfile + .dockerignore, standalone Next.js output, multi-stage build, builds successfully)
+2. ✅ Run container locally — `docker run -p 3000:3000 skill-tree` boots Next.js 16.2.2, app loads in browser, Supabase env vars baked in via `--build-arg`
+3. ✅ Push image to ECR — repo `skill-tree` in `ap-southeast-1`, account `176777036768`, URI `176777036768.dkr.ecr.ap-southeast-1.amazonaws.com/skill-tree:latest`
+4. ⏳ Terraform files: VPC, ECS, RDS, ALB
+5. ⏳ `terraform apply` provisions full stack
+6. ⏳ CloudWatch logs + alerts
 
 ### Phase 4 — Advanced
 1. ⏳ Python microservice for prerequisite engine
@@ -101,18 +102,28 @@
 - [x] Tooltips with description / prerequisites / goal rating
 - [x] Pushed to GitHub (https://github.com/Sheepbed9/skill-tree)
 
-### Phase 2 — Vercel (~43%)
+### Phase 2 — Vercel (100%)
 - [x] GitHub repo created and code pushed
 - [x] Vercel connected to GitHub
 - [x] App live at public URL (https://skill-tree-ecru.vercel.app/)
-- [ ] Supabase database connected
-- [ ] Migration from localStorage → Supabase
-- [ ] Prerequisite engine API route
-- [ ] "You can unlock X" UI
+- [x] Supabase database connected (env vars on Vercel)
+- [x] Migration from localStorage → Supabase (auto-migrates on first load)
+- [x] Prerequisite engine ("What should I learn next?" button)
+- [x] "You can unlock X" recommendations panel
 
-### Phase 3 — AWS (0%)
-- [ ] Dockerfile written
-- [ ] Image pushed to ECR
+### Phase 3 — AWS (~15%)
+- [x] Dockerfile written (multi-stage: deps → builder → runner, uses Next.js standalone output, runs as non-root user)
+- [x] `next.config.ts` set to `output: "standalone"`
+- [x] `.dockerignore` created
+- [x] `docker build` succeeds locally (passes `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` via `--build-arg` so they're baked into the client bundle)
+- [x] `docker run` tested locally (container boots, app loads at localhost:3000, functional checks pass — user skipped DevTools health checks)
+- [x] AWS account created (session 5)
+- [x] IAM user `skill-tree-cli` created with `AdministratorAccess` policy + access key generated
+- [x] AWS CLI v2 installed on laptop
+- [x] AWS CLI configured (`aws sts get-caller-identity` works) — default region set during `aws configure`
+- [x] ECR repository created (`skill-tree` in `ap-southeast-1`, scan-on-push enabled)
+- [x] Docker authenticated to ECR (`aws ecr get-login-password ...` → `Login Succeeded`)
+- [x] Local image tagged with ECR URI and pushed (digest `sha256:81342a2c943d...`)
 - [ ] Terraform: VPC, ECS, RDS, ALB
 - [ ] `terraform apply` succeeds
 - [ ] App live on AWS
@@ -132,11 +143,11 @@
 
 | Phase | Progress | Notes |
 |---|---|---|
-| Phase 1 — Local | **~100%** | All features done; only GitHub push remaining |
-| Phase 2 — Vercel | ~43% | Deployed to Vercel, live at public URL |
-| Phase 3 — AWS | 0% | Not started |
+| Phase 1 — Local | **100%** | Complete |
+| Phase 2 — Vercel | **100%** | Live at skill-tree-ecru.vercel.app with Supabase |
+| Phase 3 — AWS | ~35% | Image live in ECR; Terraform / ECS / RDS / ALB next |
 | Phase 4 — Advanced | 0% | Not started |
-| **Overall project** | **~35%** | Weighted across all 4 phases |
+| **Overall project** | **~62%** | Phases 1 & 2 complete, Phase 3 well underway |
 
 **Known tech debt (tracked, not blocking):**
 - Inline styles everywhere — should migrate to Tailwind or CSS modules
@@ -151,16 +162,37 @@
 
 ## 5. Next Actions
 
-**Immediate (next session):**
+**Immediate (next session — Phase C "Terraform + run on AWS"):**
 
-1. **Supabase setup** — create a Supabase project, design the schema, migrate from localStorage to a real database.
+Image is live in ECR (session 6, 2026-05-07). Picking up at infrastructure-as-code:
 
-**Open design questions to resolve with user:**
-- When moving to Supabase in Phase 2, do we migrate existing localStorage trees or reset?
+1. **Install Terraform** on the laptop (Windows installer or Chocolatey).
+2. **Decide on database for Phase 3** — keep Supabase (simpler, app already works against it) or provision RDS Postgres in Terraform (more learning, requires schema migration). Recommend keeping Supabase for the first ECS deploy, then migrating to RDS as a second pass.
+3. **Write Terraform modules:**
+   - VPC + subnets (public for ALB, private for ECS tasks)
+   - Security groups (ALB → ECS, ECS → internet for Supabase)
+   - ECS cluster + Fargate task definition (pulls `176777036768.dkr.ecr.ap-southeast-1.amazonaws.com/skill-tree:latest`)
+   - ECS service (1 task to start)
+   - ALB + target group + listener (HTTP first, HTTPS later with ACM cert)
+   - IAM execution role (lets ECS pull from ECR + write to CloudWatch)
+4. **`terraform apply`** — provisions the full stack. Expect 5–10 min on first apply.
+5. **Hit the ALB DNS name** in a browser — confirm app loads, edits persist to Supabase.
+6. **`terraform destroy`** when done experimenting (avoids running bills).
 
-**Bigger next moves (after Phase 1 wraps):**
-- Create GitHub repo → push → connect Vercel → first public URL
-- Then: Supabase migration + prerequisite engine
+**After Phase C:**
+- CloudWatch logs + alerts.
+- Decide RDS migration timing.
+- HTTPS via ACM + Route53 (optional; ALB DNS works for now).
+
+**(Optional revisit)** Run the DevTools health checks on the local container before going to AWS — user skipped these in session 5/6.
+
+**When resuming:** Docker Desktop won't be running — start it. AWS CLI config persists. ECR image stays in AWS indefinitely (small storage cost). If gap > ~5 days, check Supabase isn't paused.
+
+**Bigger next moves:**
+- After ECR push: write Terraform for VPC + ECS Fargate + RDS Postgres + ALB
+- Decide: keep Supabase or migrate to AWS RDS? (Supabase is simpler; RDS is the learning goal)
+- CloudWatch logs + alerts
+- Keep Vercel as staging environment
 
 ---
 
