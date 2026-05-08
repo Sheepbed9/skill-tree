@@ -14,13 +14,14 @@ SkillTree lets you:
 - Create **custom skills** not in the library and connect them anywhere
 - Edit node names, icons, scores, and status from an in-canvas panel
 - Click edges to select/highlight, reconnect by dragging, or delete by dropping in space
-- Everything **saves automatically** to localStorage
+- Everything **saves automatically** to a Supabase Postgres database
+- **"What should I learn next?"** — prerequisite engine surfaces skills you can unlock based on what you already have
 
 ## Current Status
 
-**Phase 1 (Local Prototype) — Complete.** The app runs locally via `npm run dev`.
+**Live on Vercel** at [skill-tree-ecru.vercel.app](https://skill-tree-ecru.vercel.app/). Phase 3 (AWS via Terraform) is also working — the full stack can be provisioned on demand with `terraform apply` and torn down with `terraform destroy`.
 
-Next up: Phase 2 — deploy to Vercel with a real database (Supabase) and prerequisite engine.
+See [PLAN.md](PLAN.md) for current progress.
 
 ## Project Goals
 
@@ -34,39 +35,40 @@ Next up: Phase 2 — deploy to Vercel with a real database (Supabase) and prereq
 
 | Phase | Hosting | Status |
 |---|---|---|
-| Phase 1 | Local only (`npm run dev`) | Complete |
-| Phase 2 | Vercel + Supabase | Up next |
-| Phase 3 | AWS via Terraform | Planned |
+| Phase 1 | Local (`npm run dev`) | Complete |
+| Phase 2 | Vercel + Supabase | Live |
+| Phase 3 | AWS via Terraform (ECS Fargate + ALB) | Working — provisioned on demand |
+| Phase 4 | Multi-user, auth, sharing | Planned |
 
 ## Project Structure
 
 ```
 skill-tree/
-├── app/
-│   ├── page.tsx           # Main app — canvas, sidebar, edit panel, all logic
-│   ├── SkillNode.tsx      # Custom React Flow node (game-style circular nodes)
-│   ├── skillLibrary.ts    # 15 life domains with hundreds of nested skills
-│   └── layout.tsx         # Next.js root layout
-├── docs/
-│   ├── requirements.md    # User stories and feature specs
-│   ├── tech-stack.md      # Technology choices with reasoning
-│   └── learning-roadmap.md # Phase-by-phase learning plan
-├── PLAN.md                # Project status tracker (start here for context)
-└── public/                # Static files
+├── app/                    # Next.js app — page, custom node, skill library
+├── infra/                  # Terraform — AWS Fargate stack (Phase 3)
+├── docs/                   # Requirements, tech stack, stack-explained
+├── Dockerfile              # Multi-stage build for AWS deployment
+├── PLAN.md                 # Project status tracker (start here)
+└── public/                 # Static files
 ```
 
 ## Getting Started
+
+**Try it live:** [skill-tree-ecru.vercel.app](https://skill-tree-ecru.vercel.app/) — no setup needed.
+
+**Or run locally:**
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000 — click a domain in the sidebar to start building your tree.
+Then open http://localhost:3000. (You'll need a `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to talk to the database.)
 
 ## Documentation
 
 - [PLAN.md](PLAN.md) — project status and progress tracker
+- [docs/stack-explained.md](docs/stack-explained.md) — every piece of tech in this project, why it was chosen, and what it replaces (written for non-technical readers)
 - [docs/requirements.md](docs/requirements.md) — what the app needs to do
 - [docs/tech-stack.md](docs/tech-stack.md) — what tools we're using and why
 - [docs/learning-roadmap.md](docs/learning-roadmap.md) — the step-by-step learning plan
