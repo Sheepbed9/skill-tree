@@ -2,8 +2,8 @@
 
 > **Purpose:** Single source of truth for project status. Start each new Claude session with "Claude, continue with PLAN.md" and Claude will read this file to resume where we left off.
 >
-> **Last updated:** 2026-05-07 (session 6)
-> **Overall progress:** ~62% (Phase 1 100% · Phase 2 100% · Phase 3 ~35% · Phase 4 0%)
+> **Last updated:** 2026-05-08 (session 7)
+> **Overall progress:** ~80% (Phase 1 100% · Phase 2 100% · Phase 3 ~85% · Phase 4 0%)
 
 ---
 
@@ -60,9 +60,12 @@
 1. ✅ Dockerize the app (Dockerfile + .dockerignore, standalone Next.js output, multi-stage build, builds successfully)
 2. ✅ Run container locally — `docker run -p 3000:3000 skill-tree` boots Next.js 16.2.2, app loads in browser, Supabase env vars baked in via `--build-arg`
 3. ✅ Push image to ECR — repo `skill-tree` in `ap-southeast-1`, account `176777036768`, URI `176777036768.dkr.ecr.ap-southeast-1.amazonaws.com/skill-tree:latest`
-4. ⏳ Terraform files: VPC, ECS, RDS, ALB
-5. ⏳ `terraform apply` provisions full stack
-6. ⏳ CloudWatch logs + alerts
+4. ✅ Terraform files: VPC, ECS, ALB (kept Supabase, RDS deferred) — 6 files in `infra/`, 18 resources
+5. ✅ `terraform apply` provisions full stack — verified with live ALB URL serving the app, Supabase connected, all 18 resources created
+6. ✅ `terraform destroy` tested — clean teardown, full apply→destroy cycle proven
+7. ⏳ CloudWatch logs + alerts (logs are live; alerts not yet configured)
+8. ⏳ HTTPS via ACM (HTTP only currently)
+9. ⏳ Optional: migrate Supabase → RDS Postgres
 
 ### Phase 4 — Advanced
 1. ⏳ Python microservice for prerequisite engine
@@ -111,7 +114,7 @@
 - [x] Prerequisite engine ("What should I learn next?" button)
 - [x] "You can unlock X" recommendations panel
 
-### Phase 3 — AWS (~15%)
+### Phase 3 — AWS (~85%)
 - [x] Dockerfile written (multi-stage: deps → builder → runner, uses Next.js standalone output, runs as non-root user)
 - [x] `next.config.ts` set to `output: "standalone"`
 - [x] `.dockerignore` created
@@ -124,11 +127,20 @@
 - [x] ECR repository created (`skill-tree` in `ap-southeast-1`, scan-on-push enabled)
 - [x] Docker authenticated to ECR (`aws ecr get-login-password ...` → `Login Succeeded`)
 - [x] Local image tagged with ECR URI and pushed (digest `sha256:81342a2c943d...`)
-- [ ] Terraform: VPC, ECS, RDS, ALB
-- [ ] `terraform apply` succeeds
-- [ ] App live on AWS
-- [ ] CloudWatch logs + alerts
-- [ ] Vercel kept as staging
+- [x] Terraform v1.15.2 installed (`C:\tools\terraform\`, on PATH)
+- [x] `infra/` scaffolding: `versions.tf`, `providers.tf`, `variables.tf`, `terraform.tfvars`, `outputs.tf`
+- [x] `terraform init` (downloaded AWS provider v5.x, lock file committed)
+- [x] Resource files written: `vpc.tf`, `security.tf`, `iam.tf`, `ecs.tf`, `alb.tf` (18 resources total)
+- [x] `terraform plan` clean (18 to add, 0 to change, 0 to destroy)
+- [x] `terraform apply` succeeded — full stack provisioned in ~7 min
+- [x] App live on AWS — verified at ALB DNS, Supabase still connected, end-to-end working
+- [x] `terraform destroy` clean teardown
+- [x] AWS Console verified — Tag Editor shows 12/18 (others are sub-resources or global IAM, expected)
+- [x] CloudWatch log group `/ecs/skill-tree` configured with 7-day retention
+- [ ] CloudWatch alerts (CPU, memory, ALB 5xx, task count)
+- [ ] HTTPS listener via ACM certificate
+- [ ] Optional: migrate Supabase → RDS Postgres
+- [x] Vercel kept as staging (Vercel deploys still active alongside AWS)
 
 ### Phase 4 — Advanced (0%)
 - [ ] Python prerequisite engine microservice
@@ -145,9 +157,9 @@
 |---|---|---|
 | Phase 1 — Local | **100%** | Complete |
 | Phase 2 — Vercel | **100%** | Live at skill-tree-ecru.vercel.app with Supabase |
-| Phase 3 — AWS | ~35% | Image live in ECR; Terraform / ECS / RDS / ALB next |
+| Phase 3 — AWS | ~85% | Full stack provisioned + destroyed via Terraform; alerts/HTTPS/RDS deferred |
 | Phase 4 — Advanced | 0% | Not started |
-| **Overall project** | **~62%** | Phases 1 & 2 complete, Phase 3 well underway |
+| **Overall project** | **~80%** | Phases 1 & 2 complete, Phase 3 essentially done (apply→destroy proven), Phase 4 not started |
 
 **Known tech debt (tracked, not blocking):**
 - Inline styles everywhere — should migrate to Tailwind or CSS modules
@@ -162,27 +174,29 @@
 
 ## 5. Next Actions
 
-**Immediate (next session — Phase C "Terraform + run on AWS"):**
+**Phase C — Terraform + run on AWS (DONE, session 7, 2026-05-08):**
 
-Image is live in ECR (session 6, 2026-05-07). Picking up at infrastructure-as-code:
+Full apply → poke → destroy cycle proven. Stack is reproducible from `infra/` — `terraform apply` brings it back identically in ~7 min, `terraform destroy` tears it down in ~5 min. Cost during the experiment: ~$0.05–0.20.
 
-1. **Install Terraform** on the laptop (Windows installer or Chocolatey).
-2. **Decide on database for Phase 3** — keep Supabase (simpler, app already works against it) or provision RDS Postgres in Terraform (more learning, requires schema migration). Recommend keeping Supabase for the first ECS deploy, then migrating to RDS as a second pass.
-3. **Write Terraform modules:**
-   - VPC + subnets (public for ALB, private for ECS tasks)
-   - Security groups (ALB → ECS, ECS → internet for Supabase)
-   - ECS cluster + Fargate task definition (pulls `176777036768.dkr.ecr.ap-southeast-1.amazonaws.com/skill-tree:latest`)
-   - ECS service (1 task to start)
-   - ALB + target group + listener (HTTP first, HTTPS later with ACM cert)
-   - IAM execution role (lets ECS pull from ECR + write to CloudWatch)
-4. **`terraform apply`** — provisions the full stack. Expect 5–10 min on first apply.
-5. **Hit the ALB DNS name** in a browser — confirm app loads, edits persist to Supabase.
-6. **`terraform destroy`** when done experimenting (avoids running bills).
+Decisions made along the way:
+- Kept Supabase (skipped RDS for now — app already works against it; RDS migration is a future stretch goal)
+- ECS tasks in public subnets (avoids ~$32/mo NAT Gateway; security via SG-only-from-ALB pattern)
+- Smallest Fargate task: 256 CPU / 512 MB (~$0.30/day if left on)
+- HTTP listener only (HTTPS deferred to ACM/Route53 session)
+- `default_tags = { Project, ManagedBy }` on AWS provider — every resource gets tagged automatically
+- Supabase `NEXT_PUBLIC_*` vars baked into image at build time, not in ECS task env (Next.js inlines NEXT_PUBLIC_ at build, runtime env vars would have no effect — comment in `ecs.tf`)
 
-**After Phase C:**
-- CloudWatch logs + alerts.
-- Decide RDS migration timing.
-- HTTPS via ACM + Route53 (optional; ALB DNS works for now).
+**Remaining Phase 3 polish (deferred, not blocking):**
+- CloudWatch alerts: CPU, memory, ALB 5xx, ECS task count drops to 0
+- HTTPS via ACM cert + DNS record
+- RDS migration (only if learning value justifies the schema migration work)
+
+**Phase 4 — when ready to start:**
+- Python prerequisite engine microservice (likely as a Lambda or sidecar container)
+- User auth (NextAuth or AWS Cognito)
+- Multi-user DB schema + shareable public links
+
+**When resuming:** Docker Desktop won't be running. AWS CLI config persists. ECR image stays in AWS (~$0.10/mo). To bring the stack back: `cd infra && terraform apply`. To stop bill: `terraform destroy`.
 
 **(Optional revisit)** Run the DevTools health checks on the local container before going to AWS — user skipped these in session 5/6.
 

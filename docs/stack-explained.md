@@ -310,6 +310,52 @@ Three conveniences, no functional difference vs standalone Git Bash:
 
 You could equally well open standalone Git Bash from the Start menu and run the same commands — same shell, same behaviour. The VS Code integration is purely ergonomic.
 
+### PATH — how the terminal finds programs
+
+When you type `git`, `docker`, `aws`, or `terraform` in a terminal, the OS does not magically know where those programs live on disk. It uses an **environment variable** called **PATH** to find them.
+
+`PATH` is a list of folder paths, separated by semicolons on Windows (colons on Linux/Mac). It looks something like:
+
+```
+C:\Windows\system32;C:\Windows;C:\Program Files\Git\bin;C:\tools\terraform\;...
+```
+
+When you type `terraform`, the OS:
+
+1. Takes the command name: `terraform`
+2. Walks through every folder in `PATH`, in order
+3. In each folder, looks for `terraform.exe` (or `terraform` on Linux/Mac)
+4. The first match wins — that file is executed
+5. If no folder contains a match → `command not found`
+
+**Why PATH exists:** without it, you would have to type the full file location every time:
+
+| Without PATH | With PATH |
+|---|---|
+| `"C:\tools\terraform\terraform.exe" --version` | `terraform --version` |
+| `"C:\Program Files\Git\bin\git.exe" status` | `git status` |
+| `"C:\Program Files\Amazon\AWS CLI\aws.exe" sts get-caller-identity` | `aws sts get-caller-identity` |
+
+PATH is the convenience layer that makes terminals usable. Every command you have typed in this project — `git`, `npm`, `docker`, `aws`, now `terraform` — works because its installer (or you, manually) added its folder to PATH.
+
+**How tools land on PATH:**
+
+- Most installers (`winget`, MSI installers, Docker Desktop, AWS CLI) add their folder to PATH automatically. You never see this happen.
+- Manual installs — download a `.exe`, drop it in a folder — require you to add the folder to PATH yourself, via **System Properties → Environment Variables**. This is what we did for Terraform: extracted the binary to `C:\tools\terraform\` and added that folder to the PATH list.
+
+**Why you must restart the terminal after a PATH change:** PATH is read once when a process starts, then cached in that process's memory. Already-open terminals (and parent applications like VS Code) still use the old cached PATH and do not see your change. New terminals started *after* the change pick up the new PATH. This is why "fully close VS Code, reopen everything" is the standard fix when an installer says "command not found" right after a successful install.
+
+**System PATH vs User PATH on Windows:**
+
+| Box | Affects | When to use |
+|---|---|---|
+| **User variables** (top of dialog) | Just your Windows account | Personal tools, no admin needed |
+| **System variables** (bottom of dialog) | All accounts on the machine | System-wide tools, requires admin |
+
+Both lists are concatenated into your effective PATH at login. For a personal laptop with one user, the difference is mostly cosmetic.
+
+**Mental model:** PATH is a librarian's "where to look" shortlist. Instead of giving full shelf addresses ("Aisle 3, Shelf 7, Bin 12"), you ask for the title and the librarian checks her shortlist of aisles. The first matching aisle wins.
+
 ### What we did not choose, and why
 
 | Option | Why not |
@@ -320,12 +366,133 @@ You could equally well open standalone Git Bash from the Start menu and run the 
 
 ---
 
-## 7. Summary table — the journey
+## 7. Terraform — infrastructure as code
+
+### The problem Terraform solves
+
+By Phase 3 we needed to create around 18 AWS resources — VPC, subnets, security groups, IAM role, ECS cluster, task definition, service, ALB, target group, listener, log group. Two ways to do this:
+
+1. **Click through the AWS Console** — open each service page, fill in forms, copy IDs from one page to paste into another. Works once. Falls apart the moment you need to recreate it elsewhere, share it with a teammate, or tear it down cleanly.
+2. **Describe the resources in code, run a command that materialises them** — what we did, using Terraform.
+
+Cloud infrastructure is too sprawling and too interconnected to manage by hand. **Infrastructure-as-Code (IaC)** flips the model: you write text files that *describe* the resources you want, version them in Git like any other code, and let a tool compute what to create/change/destroy.
+
+### What Terraform does
+
+**Terraform** is a CLI tool that reads `.tf` files written in **HCL** (HashiCorp Configuration Language), figures out the difference between what you described and what currently exists in the cloud, and applies whatever changes are needed.
+
+The key word is **declarative**: you say *what should exist*, not *how to create it*. Terraform figures out the order (you cannot create a subnet before its VPC; you cannot attach an IAM role before it exists).
+
+Four commands cover 95% of usage:
+
+| Command | What it does |
+|---|---|
+| `terraform init` | One-time setup per project. Downloads provider plugins into `.terraform/`, creates `.terraform.lock.hcl` pinning their versions. |
+| `terraform plan` | **Read-only preview.** Calls AWS to check current state, compares to your `.tf` files, prints what *would* change. Nothing is actually modified. |
+| `terraform apply` | Re-runs plan, prompts for confirmation (`yes`), then makes the changes for real. |
+| `terraform destroy` | Removes everything in your state. The clean-teardown command. |
+
+### The state file (`terraform.tfstate`)
+
+Critical concept. When `apply` creates resources, Terraform writes a record of what it created to **`terraform.tfstate`** — a JSON file, the source of truth for "what does Terraform think exists."
+
+| Without state | With state |
+|---|---|
+| Each `apply` would recreate everything | `apply` only acts on the diff between `.tf` files and state |
+| `destroy` impossible — Terraform would not know what to remove | `destroy` reads state and removes exactly those resources |
+| No way to detect drift (someone clicked in the console) | `plan` flags drift automatically |
+
+State can contain sensitive values (DB passwords, generated secrets), so we **gitignore it**. For a solo project, local state on disk is fine. Teams use **remote state** in S3 with DynamoDB locking; that is our future-upgrade path.
+
+### Providers — the AWS plugin
+
+Terraform itself is cloud-agnostic. The actual "translate this resource into API calls" logic lives in **providers**, plugins published by HashiCorp and the community. We use:
+
+- `hashicorp/aws` — the AWS provider, around 5000 resource types covering nearly every AWS service.
+
+`versions.tf` pins the provider version (`~> 5.0`), `terraform init` downloads it, and from then on `aws_vpc`, `aws_ecs_service`, etc. are available as resource types in our `.tf` files.
+
+### Our project structure
+
+The `infra/` folder is one Terraform configuration. All `.tf` files in the same folder are read together as a single unit:
+
+| File | Contents |
+|---|---|
+| `versions.tf` | Required Terraform + provider versions |
+| `providers.tf` | AWS provider config (region, default tags) |
+| `variables.tf` | Input variable declarations (region, project name, image URI, Supabase vars) |
+| `terraform.tfvars` | Values for the variables — committed because all values are non-secret |
+| `vpc.tf` | VPC, 2 subnets, IGW, route table, RT associations |
+| `security.tf` | Two security groups (ALB-facing, ECS-facing) |
+| `iam.tf` | CloudWatch log group, ECS task execution role |
+| `ecs.tf` | ECS cluster, task definition, service |
+| `alb.tf` | ALB, target group, HTTP listener |
+| `outputs.tf` | What to print after apply (app URL, cluster/service names, log group) |
+| `.terraform.lock.hcl` | Provider version + checksum lockfile (committed, same role as `package-lock.json`) |
+
+### What gets created on `terraform apply`
+
+18 AWS resources, grouped by purpose:
+
+| Group | Resources |
+|---|---|
+| **Networking** (7) | 1 VPC, 2 public subnets across 2 AZs, 1 internet gateway, 1 route table, 2 route table associations |
+| **Security** (2) | 2 security groups — ALB takes port 80 from anywhere; ECS takes port 3000 *only from the ALB* |
+| **Identity + logs** (3) | 1 CloudWatch log group, 1 IAM execution role, 1 managed-policy attachment |
+| **Compute** (3) | 1 ECS cluster, 1 Fargate task definition, 1 ECS service (1 task) |
+| **Load balancing** (3) | 1 ALB, 1 target group, 1 HTTP listener |
+
+Apply takes around 7 minutes end-to-end. Destroy takes around 5 minutes. The ALB and the ECS service health-check stabilization are the slow steps; everything else completes in seconds.
+
+### Decisions we made along the way
+
+| Choice | Why |
+|---|---|
+| **Kept Supabase, skipped RDS** | App already works against Supabase. Adding RDS would require a schema migration with no clear learning gain at this stage. |
+| **ECS tasks in public subnets, not private** | Avoids needing a NAT Gateway (~$32/month). Security comes from the security-group-only-from-ALB pattern, not network isolation. |
+| **Smallest Fargate task** (256 CPU / 512 MB) | App is tiny; bigger sizes would just waste money. |
+| **HTTP only, no HTTPS** | Adds an ACM certificate + DNS records. Deferred to a later session. |
+| **`default_tags` on the AWS provider** | Every Terraform-created resource is auto-tagged with `Project = skill-tree, ManagedBy = Terraform`. Makes Tag Editor + cost reports trivial. |
+| **`NEXT_PUBLIC_*` env vars not in ECS task** | Next.js inlines these at build time, not at runtime. Setting them as runtime env vars would have no effect. They are baked into the image during `docker build` instead. |
+
+### The economics — apply / destroy cycle
+
+The whole point of IaC is that creation and teardown are cheap and reversible:
+
+| State | Cost |
+|---|---|
+| `infra/` exists in Git, nothing applied | $0 (just text files) |
+| Stack running on AWS (after apply, idle) | ~$0.90/day (ALB + Fargate + minor CloudWatch) |
+| Stack destroyed (after destroy) | ~$0/day (ECR keeps the image at ~$0.10/month) |
+
+Standard learning workflow: `apply` → poke around for an hour → `destroy`. Total cost: a few cents.
+
+### What Terraform replaced
+
+Terraform replaced **clicking through the AWS Console + a stale wiki page describing the steps**. Two main wins:
+
+1. **Reproducibility** — `terraform apply` from another machine produces identical infrastructure. New environment in 7 minutes, not 7 hours.
+2. **Auditability** — `git log infra/` shows every infrastructure change with author and timestamp. Console clicks have no equivalent record.
+
+### Why Terraform specifically
+
+| Alternative | Why not (for this project) |
+|---|---|
+| **AWS CloudFormation** | AWS-native, but only AWS. Terraform speaks dozens of clouds and SaaS APIs (Cloudflare, Datadog, GitHub), making it a more portable skill. |
+| **AWS CDK** (TypeScript/Python) | A "programming language → CloudFormation" wrapper. Powerful but more moving parts. Terraform's declarative HCL is simpler to read for someone learning. |
+| **Pulumi** | Similar to CDK but multi-cloud. Newer, smaller community, fewer examples. Worth knowing about; not the default learning path. |
+| **Ansible** | Imperative, configuration-management focused (install package, write file). Not a great fit for "create cloud resources from scratch." |
+
+Terraform is the **lingua franca** of cloud infrastructure — biggest community, deepest example library, best-documented. Same role as Docker for containers.
+
+---
+
+## 8. Summary table — the journey
 
 | Phase | What runs the app | What stores data | Public URL? |
 |---|---|---|---|
 | Phase 1 (local) | Node.js on your laptop via `npm run dev` | localStorage in the browser | No |
 | Phase 2 (Vercel) | Vercel's servers | Supabase (Postgres) | Yes (`skill-tree-ecru.vercel.app`) |
-| Phase 3 (AWS) | ECS Fargate containers | RDS Postgres or Supabase (TBD) | Yes (ALB-provided URL) |
+| Phase 3 (AWS) | ECS Fargate via Terraform-managed stack | Supabase (RDS deferred) | Yes (ALB DNS, e.g. `skill-tree-alb-XXX.ap-southeast-1.elb.amazonaws.com`) |
 
-Vercel will be kept alongside AWS as a **staging environment** — a place to test changes before promoting them to production.
+Vercel is kept alongside AWS as a **staging environment** — a place to test changes before promoting them to production. The AWS stack is provisioned on demand via `terraform apply` and torn down with `terraform destroy` to control costs.

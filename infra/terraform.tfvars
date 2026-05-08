@@ -1,0 +1,5 @@
+aws_region        = "ap-southeast-1"
+project_name      = "skill-tree"
+ecr_image_uri     = "176777036768.dkr.ecr.ap-southeast-1.amazonaws.com/skill-tree:latest"
+supabase_url      = "https://breoaswxzvrkczmrplzk.supabase.co"
+supabase_anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZW9hc3d4enZya2N6bXJwbHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTE3ODgsImV4cCI6MjA5MTcyNzc4OH0.lrFAbkiqh76OSRqDHzq6KX3L9I2skYc1Uh3W4z5trwA"
